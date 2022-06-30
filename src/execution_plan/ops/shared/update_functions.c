@@ -238,6 +238,7 @@ void EvalEntityUpdates(GraphContext *gc, PendingUpdateCtx **node_updates,
 
 	// if we're converting a SET clause, NULL is acceptable
 	// as it indicates a deletion
+
 	SIType accepted_properties = SI_VALID_PROPERTY_VALUE;
 	if(allow_null) accepted_properties |= T_NULL;
 
@@ -252,7 +253,7 @@ void EvalEntityUpdates(GraphContext *gc, PendingUpdateCtx **node_updates,
 		PropertySetCtx    property   =  ctx->properties[i];
 		Attribute_ID      attr_id    =  property.id;
 		SIValue           new_value  =  AR_EXP_Evaluate(property.exp,  r);
-
+		
 		if(attr_id == ATTRIBUTE_ALL && !(SI_TYPE(new_value) & (T_NODE | T_EDGE | T_MAP))) {
 			// left-hand side is alias reference but right-hand side is a
 			// scalar, emit an error
@@ -271,6 +272,9 @@ void EvalEntityUpdates(GraphContext *gc, PendingUpdateCtx **node_updates,
 				SIValue key;
 				SIValue value;
 				Map_GetIdx(m, j, &key, &value);
+				if(!allow_null && SI_TYPE(value) == T_NULL) {
+					continue;
+				}
 				Attribute_ID attr_id = GraphContext_FindOrAddAttribute(gc,
 																	   key.stringval);
 

@@ -27,7 +27,8 @@ static void MergeFree(OpBase *opBase);
 // apply a set of updates to the given records
 static void _UpdateProperties(PendingUpdateCtx **node_pending_updates,
 		PendingUpdateCtx **edge_pending_updates, ResultSetStatistics *stats,
-		raxIterator updates, Record *records, uint record_count) {
+		raxIterator updates, Record *records, uint record_count, bool allow_null) {
+			
 	ASSERT(record_count > 0);
 	GraphContext *gc = QueryCtx_GetGraphCtx();
 
@@ -37,7 +38,7 @@ static void _UpdateProperties(PendingUpdateCtx **node_pending_updates,
 		raxSeek(&updates, "^", NULL, 0);
 		while(raxNext(&updates)) {
 			EntityUpdateEvalCtx *ctx = updates.data;
-			EvalEntityUpdates(gc, node_pending_updates, edge_pending_updates, r, ctx, false);
+			EvalEntityUpdates(gc, node_pending_updates, edge_pending_updates, r, ctx, allow_null);
 		}
 	}
 }
@@ -181,6 +182,7 @@ static Record _handoff(OpMerge *op) {
 
 static Record MergeConsume(OpBase *opBase) {
 	OpMerge *op = (OpMerge *)opBase;
+	
 
 	//--------------------------------------------------------------------------
 	// handoff
@@ -272,7 +274,7 @@ static Record MergeConsume(OpBase *opBase) {
 	// if we are setting properties with ON MATCH, compute all pending updates
 	if(op->on_match && match_count > 0)
 		_UpdateProperties(&op->node_pending_updates, &op->edge_pending_updates,
-			op->stats, op->on_match_it, op->output_records, match_count);
+			op->stats, op->on_match_it, op->output_records, match_count, true);
 
 	if(must_create_records) {
 		// commit all pending changes on the Create stream
@@ -295,7 +297,7 @@ static Record MergeConsume(OpBase *opBase) {
 			if(op->on_create) {
 				_UpdateProperties(&op->node_pending_updates,
 					&op->edge_pending_updates, op->stats, op->on_create_it,
-					op->output_records + match_count, create_count);
+					op->output_records + match_count, create_count, false);
 			}
 		}
 	}
